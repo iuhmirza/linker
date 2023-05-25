@@ -5,12 +5,18 @@ import (
 	"net/http"
 )
 
-func test(res http.ResponseWriter, req *http.Request) {
-	log.Println("test called")
-	log.Println(req.Header)
-	log.Println(req.Body)
-	log.Println(req.Method)
-	log.Println(req.FormValue("longlink"))
+var shortToLong = make(map[string]string)
+
+func shorten(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		res.WriteHeader(http.StatusMethodNotAllowed)
+	}
+	long := req.FormValue("longlink")
+	var short string = GenerateShort()
+	for _, ok := shortToLong[short]; ok; short = GenerateShort() {
+	}
+	log.Println(short)
+	shortToLong[short] = long
 }
 
 func main() {
@@ -18,9 +24,8 @@ func main() {
 
 	var fs http.Handler = http.FileServer(http.Dir("static"))
 	http.Handle("/", fs)
-	http.HandleFunc("/submit", test)
+	http.HandleFunc("/submit", shorten)
 
-	http.HandleFunc("/test/", test)
 	http.Handle("/google", http.RedirectHandler("http://www.google.com", http.StatusMovedPermanently))
 	log.Println("route(s) handled")
 
