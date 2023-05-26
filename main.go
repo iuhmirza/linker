@@ -11,17 +11,20 @@ func shorten(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
-	long := req.FormValue("long")
 
-	var short string = GenerateShort()
+	long := req.FormValue("long")
+	if long == "" {
+		http.Error(res, "Bad Request", http.StatusBadRequest)
+	}
+
+	short := GenerateShort()
 	for _, ok := shortToLong[short]; ok; short = GenerateShort() {
 	}
 
 	shortToLong[short] = long
-	log.Println(short, long)
-	res.Header().Set("Content-Type", "text/html")
-	GenerateResponse(res, short)
+	WriteLinked(res, short)
 	http.Handle("/"+short, http.RedirectHandler(long, http.StatusPermanentRedirect))
+	log.Println(short, long)
 }
 
 func main() {
@@ -38,3 +41,5 @@ func main() {
 		log.Println(err)
 	}
 }
+
+//next step is to store active routes in file on exit, and read active routes on start
