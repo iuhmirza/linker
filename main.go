@@ -10,11 +10,13 @@ var shortToLong = make(map[string]string)
 func shorten(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
 	}
 
 	long := req.FormValue("long")
 	if long == "" {
 		http.Error(res, "Bad Request", http.StatusBadRequest)
+		return
 	}
 
 	short := GenerateShort()
@@ -23,8 +25,12 @@ func shorten(res http.ResponseWriter, req *http.Request) {
 
 	shortToLong[short] = long
 	WriteLinked(res, short)
-	http.Handle("/"+short, http.RedirectHandler(long, http.StatusPermanentRedirect))
 	log.Println(short, long)
+}
+
+func mapper(res http.ResponseWriter, req *http.Request) {
+	short := req.URL.Path[len("/m/"):]
+	http.Redirect(res, req, shortToLong[short], http.StatusMovedPermanently)
 }
 
 func main() {
@@ -33,8 +39,7 @@ func main() {
 	var fs http.Handler = http.FileServer(http.Dir("static"))
 	http.Handle("/", fs)
 	http.HandleFunc("/submit", shorten)
-
-	log.Println("route(s) handled")
+	http.HandleFunc("/m/", mapper)
 
 	err := http.ListenAndServe(":3000", nil)
 	if err != nil {
